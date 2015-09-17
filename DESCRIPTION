@@ -1,0 +1,11 @@
+Package: AgriTrend
+Title: Rural Development Administration Panel Data Analysis 2010-2014
+Version: 0.0.1
+Authors@R: person("Taekyung", "Kim", email = "kimtk@suwon.ac.kr", role = c("aut", "cre"))
+Description: Panel data analysis project by RDA, Korea
+Depends: R (>= 3.2.1),dplyr,stringr,xlsx
+License: Protected
+LazyData: true
+Suggests: knitr
+VignetteBuilder: knitr
+Encoding: UTF-8

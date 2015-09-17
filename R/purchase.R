@@ -27,12 +27,13 @@ store_year <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,retail=c("대형마트", "재래시장", "대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","retail")))
   ddddset[is.na(ddddset)] <- 0
+  ddddset <- ddddset %>% inner_join(demo_dist_year,by="year")
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Store Year Processed
@@ -46,13 +47,14 @@ store_year_processed <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,retail,processed) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,retail,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
-  suppressWarnings(mirror <- expand.grid(year=2010:2014,retail=c("대형마트", "재래시장", "대형슈퍼마켓","소형슈퍼마켓","직거래"),
-                        processed=c("가공","신선")))
-  ddddset <- mirror %>% left_join(dddset,by=c("year","retail","processed"))
+  dddset <- dddset0 %>% group_by(year,retail,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  mirror <- expand.grid(year=2010:2014,retail=c("대형마트", "재래시장", "대형슈퍼마켓","소형슈퍼마켓","직거래"),
+                        processed=c("가공","신선"))
+  suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","retail","processed")))
   ddddset[is.na(ddddset)] <- 0
+  ddddset <- ddddset %>% inner_join(demo_dist_year,by="year")
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Income Year
@@ -67,14 +69,13 @@ income_year <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,income_new) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,income_new) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,income_new) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,income_new=c("고소득", "중소득", "저소득"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","income_new")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_income,by=c("year","income_new")))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Income Year Processed
@@ -90,13 +91,14 @@ income_year_processed <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,income_new,processed) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,income_new,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,income_new,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,income_new=c("고소득", "중소득", "저소득"),
                         processed=c("가공","신선"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","income_new","processed")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_income,by=c("year","income_new")))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Age Year
@@ -106,13 +108,14 @@ age_year <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,age_new) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,age_new) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,age_new) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,age_new=c("30대이하", "40대연령", "50대연령", "60대이상"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","age_new")))
   ddddset[is.na(ddddset)] <- 0
-  dddset
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_age,by=c("year","age_new")))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset
 }
 #' Age Year Processed
 age_year_processed <- function(dset) {
@@ -122,13 +125,14 @@ age_year_processed <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,age_new,processed) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,age_new,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,age_new,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,age_new=c("30대이하", "40대연령", "50대연령", "60대이상"),
                         processed=c("가공","신선"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","age_new","processed")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_age,by=c("year","age_new")))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Job Year
@@ -139,12 +143,13 @@ job_year <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,full_housewife) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,full_housewife) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,full_housewife) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,full_housewife=c("전업주부","취업주부"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","full_housewife")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_job,by=c("year","full_housewife")))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Job Year Processed
@@ -156,13 +161,14 @@ job_year_processed <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,full_housewife,processed) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,full_housewife,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,full_housewife,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,full_housewife=c("전업주부","취업주부"),
                         processed = c("가공","신선"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","full_housewife","processed")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_job,by=c("year","full_housewife")))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Brand Year
@@ -172,12 +178,13 @@ brand_year <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,normal_brand) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,normal_brand) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,normal_brand) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,normal_brand=c("Normal","Brand"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","normal_brand")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Brand Year Store
@@ -191,13 +198,14 @@ brand_year_store <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,normal_brand,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,normal_brand,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,normal_brand,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,normal_brand=c("Normal","Brand"),
                         retail=c("대형마트","재래시장","대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","normal_brand","retail")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Natural Year
@@ -212,12 +220,13 @@ natural_year <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,natural) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,natural) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,natural) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,natural=c("친환경_유기농","친환경_무농약","친환경_저농약","친환경_일반"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","natural")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Pack Month Gram
@@ -234,12 +243,13 @@ pack_month_g <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("1kg초과","500g이하","500g초과1kg이하"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Pack Month Gram Store
@@ -263,13 +273,14 @@ pack_month_g_store <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("1kg초과","500g이하","500g초과1kg이하"),
                         retail=c("대형마트","재래시장","대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category","retail")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Pack Month Litter
@@ -285,12 +296,13 @@ pack_month_l <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("1L초과","500ML이하","500ML초과1L이하"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Pack Month Litter Store
@@ -313,13 +325,14 @@ pack_month_l_store <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("1L초과","500ML이하","500ML초과1L이하"),
                         retail=c("대형마트","재래시장","대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category","retail")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Pack Month Counting
@@ -336,12 +349,13 @@ pack_month_c <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("30개초과","15개이하","15개초과30개이하"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Pack Month Counting Store
@@ -364,13 +378,14 @@ pack_month_c_store <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("30개초과","15개이하","15개초과30개이하"),
                         retail=c("대형마트","재래시장","대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category","retail")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Fresh Year
@@ -381,12 +396,13 @@ fresh_year <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,fresh,panel_c2) %>% summarize(amount_mean0=mean(purchase),price_mean0=mean(purchase/quantity),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,fresh) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,fresh) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,fresh=c("신선식품","가공식품"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","fresh")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 #' Fresh Month
@@ -397,12 +413,13 @@ fresh_month <- function(dset) {
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,fresh) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
   dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,fresh) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0),N=n())
-  dddset$amount_mean <- dddset$amount_mean/dddset$N
-  dddset$price_mean <- dddset$price_mean/dddset$N
+  dddset <- dddset0 %>% group_by(year,month,fresh) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
   mirror <- expand.grid(year=2010:2014,month=1:12,fresh=c("신선식품","가공식품"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","fresh")))
   ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
   ddddset
 }
 # === END OF PROGRAM === #

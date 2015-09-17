@@ -68,3 +68,7 @@ run_analysis_normal <- function(chr_data,folder_name="") {
   save.xlsx(fname_10,result10)
   save.xlsx(fname_11,result11)
 }
+
+test_f <- function() {
+  dim(demographic)
+}

@@ -89,7 +89,7 @@ vignette: >
 
 ```{r eval=F}
 library(AgriTrend)
-data(data_peach)
+load("data_agritrend_2010-2014.RData")
 View(head(data_peach))
 ```
 
@@ -250,27 +250,7 @@ save.xlsx("egg by brand.xlsx", result)
 먼저 데이터를 읽어오기 위해 다음 코드를 실행한다.
 
 ```{r eval=F}
-data(data_rice)
-data(data_bean)
-data(data_beef)
-data(data_pork)
-data(data_chicken)
-data(data_egg)
-data(data_milk)
-data(data_water_melon)
-data(data_berry)
-data(data_tomato)
-data(data_oriental_melon)
-data(data_cucumber)
-data(data_chinese_cabbage)
-data(data_lettuce)
-data(data_mushroom)
-data(data_apple)
-data(data_tangerine)
-data(data_grape)
-data(data_persimmon)
-data(data_peach)
-data(data_fermented)
+load("data_agritrend_2010-2014.RData")
 ```
 
 다음으로 결과를 출력하는 코드를 실해한다.

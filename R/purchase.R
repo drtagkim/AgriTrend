@@ -9,6 +9,66 @@
 ##        CORRESPONDING TO DR. JUNG, G.            ##
 ## =============================================== ##
 
+#' Fresh Year
+fresh_year <- function(dset) {
+  ddset <- dset %>% filter(quantity > 0)
+  ddset$fresh <- ""
+  ddset$fresh <- ifelse(str_detect(ddset$detail3,"일반"),"신선식품","가공식품")
+  # weighted average
+  dddset0 <- ddset %>% group_by(year,fresh,panel_c2) %>% summarize(amount_mean0=mean(purchase),price_mean0=mean(purchase/quantity),f=n())
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,fresh) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","fresh"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,fresh) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
+  mirror <- expand.grid(year=2010:2014,fresh=c("신선식품","가공식품"))
+  suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","fresh")))
+  ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
+  ddddset
+}
+#' Fresh Month
+fresh_month <- function(dset) {
+  ddset <- dset %>% filter(quantity > 0)
+  ddset$fresh <- ""
+  ddset$fresh <- ifelse(str_detect(ddset$detail3,"일반"),"신선식품","가공식품")
+  # weighted average
+  dddset0 <- ddset %>% group_by(year,month,panel_c2,fresh) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,month,fresh) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","month","fresh"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,month,fresh) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
+  mirror <- expand.grid(year=2010:2014,month=1:12,fresh=c("신선식품","가공식품"))
+  suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","fresh")))
+  ddddset[is.na(ddddset)] <- 0
+  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
+  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
+  ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
+  ddddset
+}
+
+
 #' Purchase by Year
 #'
 #' @param dset Data set
@@ -26,14 +86,27 @@ store_year <- function(dset) {
   ddset$retail[ddset$retail=="인터넷구매"] = "직거래"
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,retail) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","retail"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # group calculation
+  dddset <- dddset3 %>% group_by(year,retail) %>% summarize(
+                                                                        amount_mean=sum(f*amount_mean0),
+                                                                        price_mean=sum(f*price_mean0),
+                                                                        SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                        SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
   mirror <- expand.grid(year=2010:2014,retail=c("대형마트", "재래시장", "대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","retail")))
   ddddset[is.na(ddddset)] <- 0
   ddddset <- ddddset %>% inner_join(demo_dist_year,by="year")
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Store Year Processed
@@ -43,18 +116,30 @@ store_year_processed <- function(dset) {
   ddset$retail <- as.character(ddset$retail)
   ddset$retail[ddset$retail=="기타"] = "직거래"
   ddset$retail[ddset$retail=="인터넷구매"] = "직거래"
-  ddset$processed <- ifelse(str_detect(ddset$detail3,"가공"),"가공","신선")
+  ddset$processed <- ifelse(str_detect(ddset$detail3,"일반"),"신선식품","가공식품")
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,retail,processed) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,retail,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,retail,processed) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","retail","processed"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,retail,processed) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
   mirror <- expand.grid(year=2010:2014,retail=c("대형마트", "재래시장", "대형슈퍼마켓","소형슈퍼마켓","직거래"),
-                        processed=c("가공","신선"))
+                        processed=c("신선식품","가공식품"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","retail","processed")))
   ddddset[is.na(ddddset)] <- 0
   ddddset <- ddddset %>% inner_join(demo_dist_year,by="year")
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Income Year
@@ -68,14 +153,26 @@ income_year <- function(dset) {
   ddset$income_new[ddset$income_new=="C저소득"] = "저소득"
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,income_new) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,income_new) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,income_new) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","income_new"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,income_new) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  #correction
   mirror <- expand.grid(year=2010:2014,income_new=c("고소득", "중소득", "저소득"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","income_new")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_income,by=c("year","income_new")))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Income Year Processed
@@ -87,18 +184,30 @@ income_year_processed <- function(dset) {
   ddset$income_new[ddset$income_new=="A고소득"] = "고소득"
   ddset$income_new[ddset$income_new=="B중소득"] = "중소득"
   ddset$income_new[ddset$income_new=="C저소득"] = "저소득"
-  ddset$processed <- ifelse(str_detect(ddset$detail3,"가공"),"가공","신선")
+  ddset$processed <- ifelse(str_detect(ddset$detail3,"일반"),"신선식품","가공식품")
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,income_new,processed) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,income_new,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,income_new,processed) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","income_new","processed"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,income_new,processed) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+    #correction
   mirror <- expand.grid(year=2010:2014,income_new=c("고소득", "중소득", "저소득"),
-                        processed=c("가공","신선"))
+                        processed=c("신선식품","가공식품"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","income_new","processed")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_income,by=c("year","income_new")))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Age Year
@@ -107,32 +216,56 @@ age_year <- function(dset) {
   ddset <- dset %>% filter(quantity > 0)
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,age_new) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,age_new) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,age_new) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","age_new"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+    dddset <- dddset3 %>% group_by(year,age_new) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  #correction
   mirror <- expand.grid(year=2010:2014,age_new=c("30대이하", "40대연령", "50대연령", "60대이상"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","age_new")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_age,by=c("year","age_new")))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Age Year Processed
 age_year_processed <- function(dset) {
   # select subcateogries
   ddset <- dset %>% filter(quantity > 0)
-  ddset$processed <- ifelse(str_detect(ddset$detail3,"가공"),"가공","신선")
+  ddset$processed <- ifelse(str_detect(ddset$detail3,"일반"),"신선식품","가공식품")
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,age_new,processed) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,age_new,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,age_new,processed) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","age_new","processed"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,age_new,processed) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  #correction
   mirror <- expand.grid(year=2010:2014,age_new=c("30대이하", "40대연령", "50대연령", "60대이상"),
-                        processed=c("가공","신선"))
+                        processed=c("신선식품","가공식품"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","age_new","processed")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_age,by=c("year","age_new")))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Job Year
@@ -142,14 +275,26 @@ job_year <- function(dset) {
   ddset$full_housewife <- ifelse(ddset$panel_job == "전업주부","전업주부","취업주부")
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,full_housewife) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,full_housewife) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,full_housewife) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","full_housewife"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,full_housewife) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  #correction
   mirror <- expand.grid(year=2010:2014,full_housewife=c("전업주부","취업주부"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","full_housewife")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_job,by=c("year","full_housewife")))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Job Year Processed
@@ -157,18 +302,30 @@ job_year_processed <- function(dset) {
   # select subcateogries
   ddset <- dset %>% filter(quantity > 0)
   ddset$full_housewife <- ifelse(ddset$panel_job == "전업주부","전업주부","취업주부")
-  ddset$processed <- ifelse(str_detect(ddset$detail3,"가공"),"가공","신선")
+  ddset$processed <- ifelse(str_detect(ddset$detail3,"일반"),"신선식품","가공식품")
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,full_housewife,processed) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,full_housewife,processed) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,full_housewife,processed) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","full_housewife","processed"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,full_housewife,processed) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  #correction
   mirror <- expand.grid(year=2010:2014,full_housewife=c("전업주부","취업주부"),
-                        processed = c("가공","신선"))
+                        processed = c("신선식품","가공식품"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","full_housewife","processed")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_job,by=c("year","full_housewife")))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Brand Year
@@ -177,14 +334,26 @@ brand_year <- function(dset) {
   ddset <- dset %>% filter(quantity > 0)
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,normal_brand) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,normal_brand) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,normal_brand) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","normal_brand"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,normal_brand) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  #correction
   mirror <- expand.grid(year=2010:2014,normal_brand=c("Normal","Brand"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","normal_brand")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Brand Year Store
@@ -197,8 +366,16 @@ brand_year_store <- function(dset) {
   ddset$retail[ddset$retail=="인터넷구매"] = "직거래"
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,normal_brand,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,normal_brand,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,normal_brand,retail) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","normal_brand","retail"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,normal_brand,retail) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  #correction
   mirror <- expand.grid(year=2010:2014,normal_brand=c("Normal","Brand"),
                         retail=c("대형마트","재래시장","대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","normal_brand","retail")))
@@ -206,6 +383,10 @@ brand_year_store <- function(dset) {
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Natural Year
@@ -219,14 +400,26 @@ natural_year <- function(dset) {
   ddset$natural[ddset$cultivation %in% c("친환경일반","친환경","직접재배")] <- "친환경_일반"
   # weighted average
   dddset0 <- ddset %>% group_by(year,panel_c2,natural) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,natural) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,natural) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","natural"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,natural) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  #correction
   mirror <- expand.grid(year=2010:2014,natural=c("친환경_유기농","친환경_무농약","친환경_저농약","친환경_일반"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","natural")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Pack Month Gram
@@ -242,14 +435,26 @@ pack_month_g <- function(dset) {
   ddset$pack_category[ddset$pack > 500 & ddset$pack <= 1000] <- "500g초과1kg이하"
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,month,pack_category) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","month","pack_category"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,month,pack_category) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("1kg초과","500g이하","500g초과1kg이하"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Pack Month Gram Store
@@ -272,8 +477,16 @@ pack_month_g_store <- function(dset) {
   ddset$pack_category[ddset$pack > 500 & ddset$pack <= 1000] <- "500g초과1kg이하"
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","month","pack_category","retail"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,month,pack_category,retail) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("1kg초과","500g이하","500g초과1kg이하"),
                         retail=c("대형마트","재래시장","대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category","retail")))
@@ -281,6 +494,10 @@ pack_month_g_store <- function(dset) {
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Pack Month Litter
@@ -295,14 +512,26 @@ pack_month_l <- function(dset) {
   ddset$pack_category[ddset$pack > 500 & ddset$pack <= 1000] <- "500ML초과1L이하"
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,month,pack_category) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","month","pack_category"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,month,pack_category) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("1L초과","500ML이하","500ML초과1L이하"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Pack Month Litter Store
@@ -324,8 +553,16 @@ pack_month_l_store <- function(dset) {
   ddset$pack_category[ddset$pack > 500 & ddset$pack <= 1000] <- "500ML초과1L이하"
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","month","pack_category","retail"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,month,pack_category,retail) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("1L초과","500ML이하","500ML초과1L이하"),
                         retail=c("대형마트","재래시장","대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category","retail")))
@@ -333,6 +570,10 @@ pack_month_l_store <- function(dset) {
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Pack Month Counting
@@ -348,14 +589,26 @@ pack_month_c <- function(dset) {
   ddset$pack_category[ddset$pack > 15 & ddset$pack <= 30] <- "15개초과30개이하"
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,month,pack_category) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","month","pack_category"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,month,pack_category) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("30개초과","15개이하","15개초과30개이하"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category")))
   ddddset[is.na(ddddset)] <- 0
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
 #' Pack Month Counting Store
@@ -377,8 +630,16 @@ pack_month_c_store <- function(dset) {
   ddset$pack_category[ddset$pack > 15 & ddset$pack <= 30] <- "15개초과30개이하"
   # weighted average
   dddset0 <- ddset %>% group_by(year,month,panel_c2,pack_category,retail) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  # weighted standard deviation
+  dddset1 <- ddset %>% group_by(year,month,pack_category,retail) %>% summarize(amount_mu_star = mean(purchase),price_mu_star=mean(purchase/quantity))
+  dddset2 <- dddset0 %>% inner_join(dddset1,by=c("year","month","pack_category","retail"))
+  dddset3 <- dddset2 %>% mutate(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
+  dddset <- dddset3 %>% group_by(year,month,pack_category,retail) %>% summarize(
+                                                                                                    amount_mean=sum(f*amount_mean0),
+                                                                                                    price_mean=sum(f*price_mean0),
+                                                                                                    SD_amount=sum(f*(amount_mean0 - amount_mu_star)^2),
+                                                                                                    SD_price=sum(f*(price_mean0 - price_mu_star)^2))
+  # correction
   mirror <- expand.grid(year=2010:2014,month=1:12,pack_category=c("30개초과","15개이하","15개초과30개이하"),
                         retail=c("대형마트","재래시장","대형슈퍼마켓","소형슈퍼마켓","직거래"))
   suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","pack_category","retail")))
@@ -386,40 +647,11 @@ pack_month_c_store <- function(dset) {
   suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
   ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
   ddddset$price_mean <- ddddset$price_mean/ddddset$N
+  ddddset$SD_amount <- sqrt(ddddset$SD_amount/ddddset$N)
+  ddddset$SD_price <- sqrt(ddddset$SD_price/ddddset$N)
+  ddddset$SD_amount[ddddset$SD_amount==0 & ddddset$amount_mean > 0] <- mean(ddddset$SD_amount)
+  ddddset$SD_price[ddddset$SD_price==0 & ddddset$price_mean > 0] <- mean(ddddset$SD_price)
   ddddset
 }
-#' Fresh Year
-fresh_year <- function(dset) {
-  ddset <- dset %>% filter(quantity > 0)
-  ddset$fresh <- ""
-  ddset$fresh <- ifelse(str_detect(ddset$detail3,"일반"),"신선식품","가공식품")
-  # weighted average
-  dddset0 <- ddset %>% group_by(year,fresh,panel_c2) %>% summarize(amount_mean0=mean(purchase),price_mean0=mean(purchase/quantity),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,fresh) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
-  mirror <- expand.grid(year=2010:2014,fresh=c("신선식품","가공식품"))
-  suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","fresh")))
-  ddddset[is.na(ddddset)] <- 0
-  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
-  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
-  ddddset$price_mean <- ddddset$price_mean/ddddset$N
-  ddddset
-}
-#' Fresh Month
-fresh_month <- function(dset) {
-  ddset <- dset %>% filter(quantity > 0)
-  ddset$fresh <- ""
-  ddset$fresh <- ifelse(str_detect(ddset$detail3,"일반"),"신선식품","가공식품")
-  # weighted average
-  dddset0 <- ddset %>% group_by(year,month,panel_c2,fresh) %>% summarize(amount_mean0=mean(purchase,na.rm=T),price_mean0=mean(purchase/quantity,na.rm=T),f=n())
-  dddset0 <- ungroup(dddset0)
-  dddset <- dddset0 %>% group_by(year,month,fresh) %>% summarize(amount_mean=sum(f*amount_mean0),price_mean=sum(f*price_mean0))
-  mirror <- expand.grid(year=2010:2014,month=1:12,fresh=c("신선식품","가공식품"))
-  suppressWarnings(ddddset <- mirror %>% left_join(dddset,by=c("year","month","fresh")))
-  ddddset[is.na(ddddset)] <- 0
-  suppressWarnings(ddddset <- ddddset %>% inner_join(demo_dist_year,by="year"))
-  ddddset$amount_mean <- ddddset$amount_mean/ddddset$N
-  ddddset$price_mean <- ddddset$price_mean/ddddset$N
-  ddddset
-}
+
 # === END OF PROGRAM === #
